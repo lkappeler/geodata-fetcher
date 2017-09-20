@@ -1,0 +1,25 @@
+{
+  "name": "geodata-fetcher",
+  "version": "1.0.0",
+  "description": "Fetch geodata form google api and insert to google spreadsheet",
+  "main": "index.js",
+  "dependencies": {
+    "google-auth-library": "^0.11.0",
+    "googleapis": "^21.3.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lkappeler/geodata-fetcher.git"
+  },
+  "author": "Lorenzo Kappeler",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/lkappeler/geodata-fetcher/issues"
+  },
+  "homepage": "https://github.com/lkappeler/geodata-fetcher#readme"
+}
