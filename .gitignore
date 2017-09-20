@@ -60,3 +60,6 @@ typings/
 # dotenv environment variables file
 .env
 
+.credentials
+client_secret.json
+config.json
