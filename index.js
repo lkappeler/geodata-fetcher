@@ -1,26 +1,24 @@
-
-
-var fs = require('fs');
-var readline = require('readline');
-var google = require('googleapis');
-var googleAuth = require('google-auth-library');
+const fs = require('fs');
+const readline = require('readline');
+const google = require('googleapis');
+const googleAuth = require('google-auth-library');
+const config = require('./config.json');
 
 // If modifying these scopes, delete your previously saved credentials
-// at ~/.credentials/sheets.googleapis.com-nodejs-quickstart.json
-var SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
-var TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH ||
-    process.env.USERPROFILE) + '/.credentials/';
-var TOKEN_PATH = TOKEN_DIR + 'sheets.googleapis.com-nodejs-quickstart.json';
+// at .credentials/sheets.googleapis.com-nodejs-quickstart.json
+const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
+const TOKEN_DIR = '.credentials/';
+const TOKEN_PATH = TOKEN_DIR + 'sheets.googleapis.com-nodejs-quickstart.json';
 
 // Load client secrets from a local file.
-fs.readFile('client_secret.json', function processClientSecrets(err, content) {
+fs.readFile('client_secret.json', (err, content) => {
   if (err) {
     console.log('Error loading client secret file: ' + err);
     return;
   }
   // Authorize a client with the loaded credentials, then call the
   // Google Sheets API.
-  authorize(JSON.parse(content), listMajors);
+  authorize(JSON.parse(content), updateSheet);
 });
 
 /**
@@ -31,14 +29,14 @@ fs.readFile('client_secret.json', function processClientSecrets(err, content) {
  * @param {function} callback The callback to call with the authorized client.
  */
 function authorize(credentials, callback) {
-  var clientSecret = credentials.installed.client_secret;
-  var clientId = credentials.installed.client_id;
-  var redirectUrl = credentials.installed.redirect_uris[0];
-  var auth = new googleAuth();
-  var oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
+  const clientSecret = credentials.installed.client_secret;
+  const clientId = credentials.installed.client_id;
+  const redirectUrl = credentials.installed.redirect_uris[0];
+  const auth = new googleAuth();
+  const oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
 
   // Check if we have previously stored a token.
-  fs.readFile(TOKEN_PATH, function(err, token) {
+  fs.readFile(TOKEN_PATH, (err, token) => {
     if (err) {
       getNewToken(oauth2Client, callback);
     } else {
@@ -57,15 +55,18 @@ function authorize(credentials, callback) {
  *     client.
  */
 function getNewToken(oauth2Client, callback) {
-  var authUrl = oauth2Client.generateAuthUrl({
+  const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES
   });
+
   console.log('Authorize this app by visiting this url: ', authUrl);
-  var rl = readline.createInterface({
+
+  const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
   });
+
   rl.question('Enter the code from that page here: ', function(code) {
     rl.close();
     oauth2Client.getToken(code, function(err, token) {
@@ -97,25 +98,21 @@ function storeToken(token) {
   console.log('Token stored to ' + TOKEN_PATH);
 }
 
-/**
- * Print the names and majors of students in a sample spreadsheet:
- * https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
- */
-function listMajors(auth) {
-  var sheets = google.sheets('v4');
+function updateSheet(auth) {
+  const sheets = google.sheets('v4');
   const updateTestRequest = {
     auth: auth,
-    spreadsheetId: '1iL25ujmtsYTBCsfBfwt1drVuKuUxsYE7JEd8iFR7waY',
+    spreadsheetId: config.spreadsheetId,
     range: 'I2',
-    valueInputOption: "USER_ENTERED",
+    valueInputOption: 'USER_ENTERED',
     resource : {
       values: [
         ['test']
       ]
     }
-  }
-  
-  sheets.spreadsheets.values.update(updateTestRequest, function(err, response) {
+  };
+
+  sheets.spreadsheets.values.update(updateTestRequest, (err, response) => {
     if (err) {
       console.error(err);
       return;
@@ -124,30 +121,5 @@ function listMajors(auth) {
     // TODO: Change code below to process the `response` object:
     console.log(JSON.stringify(response, null, 2));
   });
-
-  
-/*	
-  sheets.spreadsheets.values.get({
-    auth: auth,
-    spreadsheetId: '1iL25ujmtsYTBCsfBfwt1drVuKuUxsYE7JEd8iFR7waY',
-    range: '!A2:I',
-  }, function(err, response) {
-    if (err) {
-      console.log('The API returned an error: ' + err);
-      return;
-    }
-    var rows = response.values;
-    if (rows.length == 0) {
-      console.log('No data found.');
-    } else {
-      console.log('Name, Major:');
-      for (var i = 0; i < 1; i++) {
-        var row = rows[i];
-        console.log(row);
-        // Print columns A and E, which correspond to indices 0 and 4.
-      }
-    }
-  });
-  */
 }
 
