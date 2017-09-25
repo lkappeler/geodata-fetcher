@@ -5,7 +5,8 @@
   "main": "index.js",
   "dependencies": {
     "google-auth-library": "^0.11.0",
-    "googleapis": "^21.3.0"
+    "googleapis": "^21.3.0",
+    "node-fetch": "^1.7.3"
   },
   "devDependencies": {
     "ee-log": "^2.0.4"

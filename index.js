@@ -4,6 +4,7 @@ const google = require('googleapis');
 const googleAuth = require('google-auth-library');
 const config = require('./config.json');
 const log = require('ee-log');
+const fetch = require('node-fetch');
 
 class GoogleAuthorizationHandler {
   constructor() {
@@ -137,17 +138,6 @@ class SheetHandler {
             console.log('The API returned an error: ' + err);
             return reject(err);
           }
-          var rows = response.values;
-          if (rows.length == 0) {
-            console.log('No data found.');
-          } else {
-            console.log('Name, Major:');
-            for (var i = 0; i < 1; i++) {
-              var row = rows[i];
-              console.log(row);
-              // Print columns A and E, which correspond to indices 0 and 4.
-            }
-          }
           
           return resolve(response);
         });
@@ -177,24 +167,74 @@ class SheetHandler {
           }
           
           return resolve(response);
-
-          // TODO: Change code below to process the `response` object:
-          console.log(JSON.stringify(response, null, 2));
         });
       });
     });
   }
 }
 
+class GoogleGeocodeFetcher {
+  constructor(apiUrl, events, getCountryCode) {
+    this.GEOCODE_API = 'https://maps.googleapis.com/maps/api/geocode/json?address=';
+  }
+
+  getPosition(location) {
+    const city = location[2];
+    const country = location[1];
+    
+    if (!city || !country) {
+      console.log(location);
+      
+    }
+    
+    return fetch(this.GEOCODE_API + encodeURIComponent(`${city},${country}`))
+    .then((response) => {
+      return response.json();
+    }).then((result) => {
+      // google returns multiple results for the best matches
+      return result.results[0] ? 
+        result.results[0].geometry.location : 
+        { lat: 0, lng: 0, city, country };
+    });
+  }
+}
+
+
 const sheetHandler = new SheetHandler(config);
+const geocodeFetcher = new GoogleGeocodeFetcher();
+
+try {
+  console.log('foo');
+  sheetHandler.getSheet().then((result) => {
+    const data = result.values;
+    console.log('length', data.length);
+    
+    data.map((location, index) => {
+      // google rate limit 50 requests per second server and client side
+      return setTimeout(
+        () => {
+          geocodeFetcher.getPosition(location)
+          .then((result) => {
+            console.log(result);
+          }).catch((err) => {
+            console.log(err);
+          })
+        }, 250*index);
+    });
+    
+    Promise.all();
+  })
+  .then(() => {
+    console.log('here we go', result);
+  });
+} catch (err) {
+  console.error(err);
+}
+
 
 /*
-sheetHandler.getSheet().then((result) => {
-  console.log('here we go', result);
-});
-
-*/
-
 sheetHandler.updateSheet().then((result) => {
   console.log('asdadadsd', result);
 });
+
+*/
