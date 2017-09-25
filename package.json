@@ -7,7 +7,9 @@
     "google-auth-library": "^0.11.0",
     "googleapis": "^21.3.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "ee-log": "^2.0.4"
+  },
   "scripts": {
     "start": "node .",
     "test": "echo \"Error: no test specified\" && exit 1"
