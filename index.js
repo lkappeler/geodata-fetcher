@@ -3,6 +3,7 @@ const readline = require('readline');
 const google = require('googleapis');
 const googleAuth = require('google-auth-library');
 const config = require('./config.json');
+const keys = require('./keys.json');
 const log = require('ee-log');
 const fetch = require('node-fetch');
 
@@ -22,7 +23,7 @@ class GoogleAuthorizationHandler {
       }
       
       return this.getCredentials(resolve);
-    });
+    }).catch(e => console.error);
   }
   
   getCredentials(resolve) {
@@ -141,33 +142,34 @@ class SheetHandler {
           
           return resolve(response);
         });
-      });
+      }).catch(e => console.error);
     });
   } 
   
-  updateSheet() {
+  updateSheet(locationData) {
     return this.googleAuthorization.getAuth().then((auth) => {
       return new Promise((resolve, reject) => {
-        const updateTestRequest = {
+        const updateRequest = {
           auth: auth,
           spreadsheetId: this.config.spreadsheetId,
-          range: 'I2',
+          range: 'H2:I' + (locationData.length + 2),
           valueInputOption: 'USER_ENTERED',
           resource : {
-            values: [
-              ['te1231231231st']
-            ]
+            values: locationData.reduce((accumulator, location) => {
+              accumulator.push([location.lat, location.lng]);
+              
+              return accumulator; 
+            }, []),
           }
         };
         
-        this.sheets.spreadsheets.values.update(updateTestRequest, function(err, response) {
+        this.sheets.spreadsheets.values.update(updateRequest, function(err, response) {
           if (err) {
-            console.error(err);
             return reject(err);
           }
           
           return resolve(response);
-        });
+        }).catch(e => console.error);
       });
     });
   }
@@ -183,19 +185,22 @@ class GoogleGeocodeFetcher {
     const country = location[1];
     
     if (!city || !country) {
-      console.log(location);
-      
+      console.error(`No city or country not found: ${location}`);
     }
     
-    return fetch(this.GEOCODE_API + encodeURIComponent(`${city},${country}`))
+    const apiURI = `${this.GEOCODE_API}${encodeURIComponent(`${city},${country}`)}&key=${keys.geocodeApiKey}`;
+    
+    return fetch(apiURI)
     .then((response) => {
       return response.json();
     }).then((result) => {
-      // google returns multiple results for the best matches
-      return result.results[0] ? 
-        result.results[0].geometry.location : 
-        { lat: 0, lng: 0, city, country };
-    });
+      if (result.results[0]) {
+        return result.results[0].geometry.location
+      }
+      
+      console.error(`Location could not be fetched: ${apiURI}`);
+      return { lat: 0, lng: 0};
+    }).catch(e => console.error);
   }
 }
 
@@ -203,38 +208,32 @@ class GoogleGeocodeFetcher {
 const sheetHandler = new SheetHandler(config);
 const geocodeFetcher = new GoogleGeocodeFetcher();
 
-try {
-  console.log('foo');
-  sheetHandler.getSheet().then((result) => {
-    const data = result.values;
-    console.log('length', data.length);
-    
-    data.map((location, index) => {
+sheetHandler.getSheet().then((result) => {
+  const data = result.values;
+  const promises = data.map((location, index) => {
+    return new Promise((resolve, reject) => {
       // google rate limit 50 requests per second server and client side
       return setTimeout(
         () => {
-          geocodeFetcher.getPosition(location)
-          .then((result) => {
-            console.log(result);
-          }).catch((err) => {
-            console.log(err);
-          })
-        }, 250*index);
-    });
-    
-    Promise.all();
-  })
-  .then(() => {
-    console.log('here we go', result);
+          geocodeFetcher.getPosition(location).then(
+            (result) => {
+              resolve(result);
+          });
+        }, 
+        100*index);
+    })
   });
-} catch (err) {
-  console.error(err);
-}
-
-
-/*
-sheetHandler.updateSheet().then((result) => {
-  console.log('asdadadsd', result);
-});
-
-*/
+  
+  Promise.all(promises)
+    .then((result) => {
+      return sheetHandler.updateSheet(result);
+    })
+    .then((result) => {
+      console.log(result);
+    })
+    .catch(e => console.error);
+})
+.then(() => {
+  console.log('here we go', result);
+})
+.catch(e => console.error);

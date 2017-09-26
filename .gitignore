@@ -1,5 +1,8 @@
 # project specific
 client_secret.json
+.credentials
+config.json
+keys.json
 
 # Logs
 logs
@@ -60,6 +63,4 @@ typings/
 # dotenv environment variables file
 .env
 
-.credentials
-client_secret.json
-config.json
+
