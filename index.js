@@ -178,6 +178,7 @@ class SheetHandler {
 class GoogleGeocodeFetcher {
   constructor(apiUrl, events, getCountryCode) {
     this.GEOCODE_API = 'https://maps.googleapis.com/maps/api/geocode/json?address=';
+    this.positions = [];
   }
 
   getPosition(location) {
@@ -195,7 +196,29 @@ class GoogleGeocodeFetcher {
       return response.json();
     }).then((result) => {
       if (result.results[0]) {
-        return result.results[0].geometry.location
+        const location = result.results[0].geometry.location;
+        
+        // determ if the location was already added
+        const exisitingLocationWithSameCoordinates = this.positions
+          .find((existingLocation) => { 
+            return existingLocation.lat == location.lat && 
+              existingLocation.lng == location.lng;
+          });
+        
+        // add random offset to current location  
+        if (exisitingLocationWithSameCoordinates) {
+          // eather add or substract offset
+          const operatorLat = Math.random() >= 0.5;
+          const operatorLng = Math.random() >= 0.5;
+          const offsetLat = Math.random() / 100;
+          const offsetLng = Math.random() / 100;
+          
+          location.lat = operatorLat ? location.lat + offsetLat : location.lat - offsetLat;
+          location.lng = operatorLng ? location.lat + offsetLng : location.lat - offsetLng;
+        }
+        
+        this.positions.push(location);
+        return location;
       }
       
       console.error(`Location could not be fetched: ${apiURI}`);
@@ -226,6 +249,7 @@ sheetHandler.getSheet().then((result) => {
   
   Promise.all(promises)
     .then((result) => {
+      return result;
       return sheetHandler.updateSheet(result);
     })
     .then((result) => {
