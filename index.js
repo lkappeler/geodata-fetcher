@@ -214,7 +214,7 @@ class GoogleGeocodeFetcher {
           const offsetLng = Math.random() / 100;
           
           location.lat = operatorLat ? location.lat + offsetLat : location.lat - offsetLat;
-          location.lng = operatorLng ? location.lat + offsetLng : location.lat - offsetLng;
+          location.lng = operatorLng ? location.lng + offsetLng : location.lng - offsetLng;
         }
         
         this.positions.push(location);
@@ -249,7 +249,6 @@ sheetHandler.getSheet().then((result) => {
   
   Promise.all(promises)
     .then((result) => {
-      return result;
       return sheetHandler.updateSheet(result);
     })
     .then((result) => {
