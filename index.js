@@ -10,22 +10,23 @@ const fetch = require('node-fetch');
 class GoogleAuthorizationHandler {
   constructor() {
     // If modifying these scopes, delete your previously saved credentials
-    // at .credentials/sheets.googleapis.com-nodejs-quickstart.json
+    // at
+    // .credentials/sheets.googleapis.com-nodejs-quickstart.json
     this.SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
     this.TOKEN_DIR = '.credentials/';
     this.TOKEN_PATH = this.TOKEN_DIR + 'sheets.googleapis.com-nodejs-quickstart.json';
   }
-  
+
   getAuth() {
     return new Promise((resolve, reject) => {
       if (this._auth) {
         return resolve(this._auth);
       }
-      
+
       return this.getCredentials(resolve);
     }).catch(e => console.error);
   }
-  
+
   getCredentials(resolve) {
     // Load client secrets from a local file.
     fs.readFile('client_secret.json', (err, content) => {
@@ -41,7 +42,7 @@ class GoogleAuthorizationHandler {
       });
     });
   }
-    
+
   /**
    * Create an OAuth2 client with the given credentials, and then execute the
    * given callback function.
@@ -66,7 +67,7 @@ class GoogleAuthorizationHandler {
       }
     });
   }
-  
+
   /**
    * Get and store new token after prompting for user authorization, and then
    * execute the given callback with the authorized OAuth2 client.
@@ -101,7 +102,7 @@ class GoogleAuthorizationHandler {
       });
     });
   }
-  
+
   /**
    * Store token to disk be used in later program executions.
    *
@@ -126,7 +127,7 @@ class SheetHandler {
     this.googleAuthorization = new GoogleAuthorizationHandler();
     this.sheets = google.sheets('v4');
   }
-  
+
   getSheet() {
     return this.googleAuthorization.getAuth().then((auth) => {
       return new Promise((resolve, reject) => {
@@ -139,13 +140,13 @@ class SheetHandler {
             console.log('The API returned an error: ' + err);
             return reject(err);
           }
-          
+
           return resolve(response);
         });
       }).catch(e => console.error);
     });
-  } 
-  
+  }
+
   updateSheet(locationData) {
     return this.googleAuthorization.getAuth().then((auth) => {
       return new Promise((resolve, reject) => {
@@ -157,17 +158,17 @@ class SheetHandler {
           resource : {
             values: locationData.reduce((accumulator, location) => {
               accumulator.push([location.lat, location.lng]);
-              
-              return accumulator; 
+
+              return accumulator;
             }, []),
           }
         };
-        
+
         this.sheets.spreadsheets.values.update(updateRequest, function(err, response) {
           if (err) {
             return reject(err);
           }
-          
+
           return resolve(response);
         }).catch(e => console.error);
       });
@@ -184,43 +185,43 @@ class GoogleGeocodeFetcher {
   getPosition(location) {
     const city = location[2];
     const country = location[1];
-    
+
     if (!city || !country) {
       console.error(`No city or country not found: ${location}`);
     }
-    
+
     const apiURI = `${this.GEOCODE_API}${encodeURIComponent(`${city},${country}`)}&key=${keys.geocodeApiKey}`;
-    
+
     return fetch(apiURI)
     .then((response) => {
       return response.json();
     }).then((result) => {
       if (result.results[0]) {
         const location = result.results[0].geometry.location;
-        
+
         // determ if the location was already added
         const exisitingLocationWithSameCoordinates = this.positions
-          .find((existingLocation) => { 
-            return existingLocation.lat == location.lat && 
+          .find((existingLocation) => {
+            return existingLocation.lat == location.lat &&
               existingLocation.lng == location.lng;
           });
-        
-        // add random offset to current location  
+
+        // add random offset to current location
         if (exisitingLocationWithSameCoordinates) {
           // eather add or substract offset
           const operatorLat = Math.random() >= 0.5;
           const operatorLng = Math.random() >= 0.5;
           const offsetLat = Math.random() / 100;
           const offsetLng = Math.random() / 100;
-          
+
           location.lat = operatorLat ? location.lat + offsetLat : location.lat - offsetLat;
           location.lng = operatorLng ? location.lng + offsetLng : location.lng - offsetLng;
         }
-        
+
         this.positions.push(location);
         return location;
       }
-      
+
       console.error(`Location could not be fetched: ${apiURI}`);
       return { lat: 0, lng: 0};
     }).catch(e => console.error);
@@ -242,11 +243,11 @@ sheetHandler.getSheet().then((result) => {
             (result) => {
               resolve(result);
           });
-        }, 
+        },
         100*index);
     })
   });
-  
+
   Promise.all(promises)
     .then((result) => {
       return sheetHandler.updateSheet(result);
